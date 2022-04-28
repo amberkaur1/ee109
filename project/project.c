@@ -16,7 +16,8 @@
 #include "ds18b20.h"
 #include "serial.h"
 #include "project.h"
-// #include "buzzer.h"
+#include "buzzer.h"
+#include "encoder.h"
 #define green (1 << PB5)
 #define red (1 << PB4)
 #define buzzer (1 << PC5)
@@ -27,49 +28,23 @@ void variable_delay_us(int);
 void play_note(unsigned short);
 enum states { COOL, WARM, HOT };
 
-// Frequencies for natural notes from middle C (C4)
-// up one octave to C5.
-unsigned short frequency[8] =
-    { 262, 294, 330, 349, 392, 440, 494, 523 };
 
-volatile unsigned char new_state, old_state;
 volatile int remcount = 12;
 volatile char* remote_status = "  LOC";
 volatile char tempstate;
 volatile char oldtempstate;
-volatile unsigned char changed = 0;  // Flag for state change
-volatile unsigned char tempchanged = 0;  // Flag for state change
-volatile int count = 76;		// Rotary Encoder Threshold Count to display
-volatile unsigned char a, b;
+
+volatile unsigned char tempchanged = 0;
 volatile unsigned short tone, freq;
-volatile int PINDtot;
 volatile char ctemp;
 volatile int servocount = 0;
-volatile int buzzer_on = 0;
 volatile int led_count = 0;
 volatile char remote = 0; //check if remote or local
 volatile char prev_remote = 0;
 volatile char remote_changed = 0;
 volatile int remote_temp;
-// volatile char valid;
-// volatile char rembuf[5];
-void timer2_init(void)
-{
-    TCCR2A |= (0b11 << WGM00);  // Fast PWM mode, modulus = 256
-    TCCR2A |= (0b10 << COM0A0); // Turn D11 on at 0x00 and off at OCR2A
-    OCR2A = 128;                // Initial pulse duty cycle of 50%
-    TCCR2B |= (0b111 << CS20);  // Prescaler = 1024 for 16ms period
-}
-void buzzer_init(void)
-{
-    // to set up timer0 and buzzer pin
-    TCCR0B |= (1 << WGM12) | (1 << WGM13);
-    TIMSK0 |= (1 << OCIE0A);
-    OCR0A = 102;
-    TCCR0B |= (1 << CS11);
-    DDRC |= (1 << PC5);
-    TCCR0B = (0b011 << CS10);
-}
+
+
 void led_init(void)
 {
     //set up the blinking LED timer for WARM
@@ -292,99 +267,6 @@ int main(void) {
 
         }
 
-    }
-}
-
-
-
-
-
-
-
-
-ISR(PCINT2_vect){
-    // lcd_moveto(0, 0);
-    // lcd_stringout("test");
-    PINDtot = PIND;
-    b = PINDtot & (1<<PD2);
-    a = PINDtot & (1<<PD3);
-
-	// For each state, examine the two input bits to see if state
-	// has changed, and if so set "new_state" to the new state,
-	// and adjust the count value.
-	if (old_state == 0) {
-        if(a){
-            new_state = 1;
-            count++;
-        }
-        else if (b){
-            new_state = 2;
-            count--;
-        }
-
-	    // Handle A and B inputs for state 0
-	}
-	else if (old_state == 1) {
-
-	    // Handle A and B inputs for state 1
-        if(b){
-            new_state = 3;
-            count++;
-        }
-        else if (!a){
-            count--;
-            new_state = 0;
-        }
-
-	}
-	else if (old_state == 2) {
-        if(!b){
-            count++;
-            new_state = 0;
-        }
-        else if (a){
-            count--;
-            new_state = 3;
-        }
-
-	    // Handle A and B inputs for state 2
-
-	}
-	else {   // old_state = 3
-
-	    // Handle A and B inputs for state 3
-        if(!a){
-            count++;
-            new_state = 2;
-        }
-        else if (!b){
-            count--;
-            new_state = 1;
-        }
-	}
-	// If state changed, update the value of old_state,
-	// and set a flag that the state has changed.
-	if (new_state != old_state) {
-	    changed = 1;
-	    old_state = new_state;
-	}
-
-    //set threshold limits
-    if(count>90) count = 90;
-    else if (count < 50) count = 50;
-    // store in eeprom
-    eeprom_update_byte((void *)100, count);
-
-}
-ISR(TIMER0_COMPA_vect) //buzzer interrupt method
-{
-    if (buzzer_on != 0) //turn on buzzer
-    {
-        PORTC ^= (1 << PC5); //toggle buzzer
-        buzzer_on--;
-    }
-    else{ //keep buzzer at 0
-        PORTC &= ~(1 << PC5);
     }
 }
 
