@@ -16,6 +16,7 @@
 #include "ds18b20.h"
 #include "serial.h"
 #include "project.h"
+// #include "buzzer.h"
 #define green (1 << PB5)
 #define red (1 << PB4)
 #define buzzer (1 << PC5)
@@ -32,6 +33,7 @@ unsigned short frequency[8] =
     { 262, 294, 330, 349, 392, 440, 494, 523 };
 
 volatile unsigned char new_state, old_state;
+volatile int remcount = 12;
 volatile char* remote_status = "  LOC";
 volatile char tempstate;
 volatile char oldtempstate;
@@ -162,7 +164,7 @@ int main(void) {
             prev_remote = remote;
         }
         if (ds_temp(t)) {
-            lcd_writecommand(1);
+            // lcd_writecommand(1);
 
             t1 = (t[1] << 8)+t[0];
             t1*=10;
@@ -181,7 +183,10 @@ int main(void) {
             t2 = (t1%100 )/10;
             t1 = t1/100;
 
-            lcd_writecommand(1);
+            // lcd_writecommand(1);
+            lcd_moveto(1, 11);
+            char temp[5];
+            snprintf(temp, 5, "R:%d", remote_temp);
             //write temp
             lcd_moveto(1, 0);
             snprintf(buf, 16, "temp %d.%d", t1, t2);
@@ -204,17 +209,24 @@ int main(void) {
         }
         if(valid){ //new remote temp
             valid = 0;
-            sscanf(rembuf, "%d", remote_temp);
+            sscanf(rembuf, "%d", &remote_temp);
             if(!(remote_temp>-10 && remote_temp<110)){ //weird temo
                 break;
             }
 
-            if(remote)
-                OCR2A = remote_temp; //set servo to remote temp
+            if(remote){
+                remcount = (((remote_temp*100)/10-400)*23/60)/10;
+                remcount+=12;
+                lcd_moveto(1, 11);
+                char temp[5];
+                snprintf(temp, 5, "S:%d", remcount);
+                OCR2A = remcount; //set servo to remote temp
+                lcd_stringout(temp);
+            }
             lcd_moveto(1, 11);
             char temp[5];
-            // snprintf(temp, 5, "R:%d", remote_temp);
-            snprintf(temp, 5, "%s", rembuf);
+            snprintf(temp, 5, "R:%d", remote_temp);
+            // snprintf(temp, 5, "%s", rembuf);
             lcd_stringout(temp);
         }
 
@@ -262,7 +274,7 @@ int main(void) {
 	    changed = 0;        // Reset changed flag
 
 	    // Output threshold count to LCD
-        lcd_writecommand(1);
+        // lcd_writecommand(1);
         //write temp
         lcd_moveto(1, 0);
         snprintf(buf, 12, "temp %d.%d", t1, t2);

@@ -1,7 +1,7 @@
 DEVICE     = atmega328p
 CLOCK      = 16000000
 PROGRAMMER = -c arduino -b 115200 -P /dev/cu.usbmodem*
-OBJECTS    = project.o ds18b20.o lcd.o serial.o
+OBJECTS    = project.o ds18b20.o lcd.o serial.o 
 FUSES      = -U hfuse:w:0xde:m -U lfuse:w:0xff:m -U efuse:w:0x05:m
 
 # Tune the lines below only if you know what you are doing:
